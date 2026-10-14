@@ -1,0 +1,674 @@
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>蓝紫渐变电子生日蛋糕</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#03040a;color:#fff;}
+.deep-space{position:fixed;inset:0;z-index:0;background: radial-gradient(ellipse at 15% 15%, rgba(70, 110, 255, 0.35), transparent 55%), radial-gradient(ellipse at 85% 10%, rgba(255, 80, 150, 0.28), transparent 60%), radial-gradient(ellipse at 75% 85%, rgba(90, 200, 255, 0.26), transparent 62%), radial-gradient(ellipse at 25% 80%, rgba(180, 120, 255, 0.22), transparent 58%), linear-gradient(180deg,#03040a 0%,#05071a 45%,#07081c 100%); }
+.starfield{position:fixed;inset:0;z-index:0; background-image: radial-gradient(1px 1px at 10% 20%,#fff,transparent), radial-gradient(1px 1px at 25% 70%,#cfe2ff,transparent), radial-gradient(1.5px 1.5px at 40% 40%,#fff,transparent), radial-gradient(1px 1px at 55% 80%,#ffe4f1,transparent), radial-gradient(1px 1px at 70% 30%,#fff,transparent), radial-gradient(1.5px 1.5px at 85% 75%,#d9e8ff,transparent), radial-gradient(1px 1px at 90% 15%,#fff,transparent), radial-gradient(1px 1px at 15% 90%,#ffd6ea,transparent); background-size:700px 700px; background-repeat:repeat;opacity:0.45;animation:drift 140s linear infinite; }
+@keyframes drift{from{transform:translate3d(0,0,0);}to{transform:translate3d(-300px,-150px,0);}}
+.aurora{position:fixed;inset:0;z-index:0;pointer-events:none; background: radial-gradient(500px 240px at 20% 30%,rgba(100,120,255,0.22),transparent 60%), radial-gradient(560px 260px at 80% 20%,rgba(255,90,160,0.2),transparent 62%), radial-gradient(520px 240px at 70% 80%,rgba(80,200,255,0.2),transparent 62%), radial-gradient(420px 220px at 30% 70%,rgba(255,150,210,0.16),transparent 60%); animation:auroraMove 20s ease-in-out infinite alternate; }
+@keyframes auroraMove{0%{transform:translate3d(0,0,0) scale(1);}100%{transform:translate3d(-5%,4%,0) scale(1.1);}}
+canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;}
+#ribbonCanvas{position:fixed;inset:0;z-index:1.2;pointer-events:none;}
+#videoInput{position:absolute;left:-9999px;top:0;width:640px;height:480px;}
+.page{position:relative;z-index:2;width:100%;height:100%;display:none;align-items:center;justify-content:center;flex-direction:column;}
+.page.active{display:flex !important;}
+.click-hint{position:absolute;bottom:30px;font-size:15px;color:rgba(255,255,255,0.45);animation:hintBlink 2.4s ease-in-out infinite;}
+@keyframes hintBlink{0%,100%{opacity:0.25;}50%{opacity:0.7;}}
+#page-cake{cursor:pointer;perspective:1600px;}
+.cake-caption{
+  position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+  font-size:24px; color:#fff; letter-spacing:2px; text-shadow:0 2px 12px rgba(0,0,0,0.6);
+  text-align:center; white-space:normal; line-height:1.8;
+}
+.guide-tip{
+  position:absolute; right:40px; top:50%; transform:translateY(-50%);
+  background:rgba(255,255,255,0.08); border:1px solid rgba(200,210,255,0.25);
+  border-radius:16px; padding:20px 24px; backdrop-filter:blur(12px);
+  color:#e8ecff; font-size:16px; line-height:1.8;
+  text-shadow:0 1px 6px rgba(0,0,0,0.4);
+}
+.guide-tip h4{ margin-bottom:10px; font-size:17px; color:#fff; }
+.cake-center-box{
+  position: fixed; left: 50%; top: 52%; width: 0; height: 0; transform: translate(-50%, -50%);
+}
+.cake-wrap{
+  position: absolute; left: 50%; top: 50%; width: 900px; height: 900px;
+  transform-style: preserve-3d; transform-origin: 50% 50%;
+  animation: cakeRotate360 14s linear infinite;
+}
+@keyframes cakeRotate360{
+  0%{ transform: translate(-50%, -50%) rotateY(0deg); }
+  100%{ transform: translate(-50%, -50%) rotateY(360deg); }
+}
+.cake-particle{
+  position: absolute; left: 50%; top: 50%; border-radius: 50%;
+  transform-style: preserve-3d; transition: all 1.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cake-photo-item{
+  position: absolute; left: 50%; top: 50%;
+  width: 150px; height: 190px; border-radius:14px;
+  border:2px solid rgba(255,255,255,0.65); overflow:hidden;
+  transform-style:preserve-3d;
+  transition:transform 1s cubic-bezier(0.2,0.8,0.2,1),box-shadow 0.6s ease;
+  box-shadow:0 10px 28px rgba(0,0,0,0.45); background:#ffffff22;
+}
+.cake-photo-item img{width:100%;height:100%;object-fit:cover;}
+#page-final{overflow:hidden;}
+.final-text-wrap{width:92vw;max-width:860px;text-align:center;}
+.final-main-sentence{
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size:32px;
+  font-weight:300;
+  line-height:2.2;
+  letter-spacing:1.2px;
+  color:#fff;
+  text-align:center;
+  text-shadow:0 0 18px rgba(255,180,220,0.35);
+  margin-bottom:60px;
+}
+.bless-card{
+  padding: 36px 46px;
+  border-radius:24px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.2);
+  backdrop-filter:blur(16px);
+  transition:transform 0.4s ease,box-shadow 0.4s ease;
+  cursor:default;
+}
+.bless-card:hover{transform:scale(1.08);box-shadow:0 0 60px rgba(255,160,210,0.5);}
+.float-text{position:absolute;color:#ffedbc;font-size:22px;pointer-events:none;text-shadow:0 0 10px #ffd770;animation:textFloatUp 2.2s ease-out forwards;z-index:9999;}
+@keyframes textFloatUp{0{opacity:1;transform:translateY(0);}100%{opacity:0;transform:translateY(-140px);}}
+.ripple-ring{position:absolute;border-radius:50%;border:2px solid #ffdd70;pointer-events:none;animation:rippleExpand 1.2s ease-out forwards;z-index:9998;}
+@keyframes rippleExpand{0{transform:scale(0);opacity:1;}100%{transform:scale(3.2);opacity:0;}}
+</style>
+</head>
+<body>
+<video id="videoInput" autoplay></video>
+<div class="deep-space"></div>
+<div class="starfield"></div>
+<div class="aurora"></div>
+<canvas id="fireCanvas"></canvas>
+<canvas id="ribbonCanvas"></canvas>
+<div id="page-cake" class="page active">
+  <div class="guide-tip">
+  <h4>手势操作提示</h4>
+  <div>✋ 张开手掌 → 蛋糕炸开</div>
+  <div>✊ 握拳 → 复原蛋糕</div>
+  <div>☝ 伸出一根手指 → 弹出照片</div>
+  </div>
+  <div class="cake-caption">别人送你蛋糕，我送你电子版的~<br>新的一岁，愿一直开心平安喜乐~</div>
+  <div class="cake-center-box">
+  <div class="cake-wrap" id="cakeWrap"></div>
+  </div>
+  <div class="click-hint">点击屏幕进入下一界面</div>
+</div>
+<div id="page-final" class="page">
+  <div class="final-text-wrap">
+    <p class="final-main-sentence">
+      在这仅有一次的 19 岁末尾，就算会有恐惧，<br>
+      却不存在过错
+    </p>
+    <div class="bless-card">
+      <h3 style="font-family:-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;font-size:22px;margin-bottom:18px;text-align:center;">✨ 致嵇莎茹 ✨</h3>
+      <p style="font-family:-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size:16px; opacity:0.92; line-height:2.0; text-align:center;">
+        地球又转到了<br>
+        太阳第一次照到了你的地方<br>
+        20岁，正是人生的6点，愿你成长为厉害的大人<br>
+        和永远万事胜意的小孩！！！
+      </p>
+      <p style="font-family:-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size:15px; opacity:0.85; text-align:right; margin-top:14px;">
+        ———YJJ
+      </p>
+    </div>
+  </div>
+  <div class="guide-tip">
+    <h4>交互操作提示</h4>
+    <div>✊ 握拳 → 放金色烟花</div>
+    <div>🖱️ 点击屏幕 → 彩色烟花</div>
+    <div>⌨️ 空格键 → 发射蓝紫火箭</div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById("fireCanvas");
+const ctx = canvas.getContext("2d");
+const ribbonCanvas = document.getElementById("ribbonCanvas");
+const ribbonCtx = ribbonCanvas.getContext("2d");
+let currentPage = "cake";
+let mouseX = 0, mouseY = 0;
+let lastGestureTime = 0;
+const gestureCoolDown = 700;
+let lastDetectGesture = "none";
+function resizeCanvas() {
+ canvas.width = window.innerWidth;
+ canvas.height = window.innerHeight;
+ ribbonCanvas.width = window.innerWidth;
+ ribbonCanvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+class Particle {
+ constructor(x, y, color, speed, angle, life, type = "fire") {
+ this.x = x;
+ this.y = y;
+ this.color = color;
+ this.vx = Math.cos(angle) * speed;
+ this.vy = Math.sin(angle) * speed;
+ this.life = life;
+ this.maxLife = life;
+ this.type = type;
+ }
+ update() {
+ this.x += this.vx;
+ this.y += this.vy;
+ if (this.type === "fire") {
+ this.vy += 0.045;
+ } else if(this.type === "goldTrail"){this.vx*=0.96;this.vy*=0.96;this.vy+=0.008;}
+ else if (this.type === "burst") {
+ this.vx *= 0.985;
+ this.vy *= 0.985;
+ this.vy += 0.012;
+ } else if (this.type === "ring") {
+ this.vx *= 0.99;
+ this.vy *= 0.99;
+ } else if (this.type === "goldChrysanthemum") {
+ this.vx *= 0.97;
+ this.vy *= 0.97;
+ this.vy += 0.025;
+ } else if (this.type === "blueVioletBouquet") {
+ this.vx *= 0.99;
+ this.vy *= 0.99;
+ this.vy += 0.008;
+ }
+ }
+ draw() {
+ const alpha = Math.max(this.life / this.maxLife, 0);
+ ctx.beginPath();
+ ctx.arc(this.x, this.y, this.type === "goldTrail" ? 1.4 : 2, 0, Math.PI * 2);
+ ctx.fillStyle = `rgba(${this.color}, ${alpha})`;
+ ctx.fill();
+ }
+}
+class Rocket {
+ constructor(x, targetY) {
+ this.x = x;
+ this.y = canvas.height + 10;
+ this.targetY = targetY;
+ this.vy = -7.2;
+ this.color = "120, 200, 255";
+ this.exploded = false;
+ }
+ update() {
+ if (!this.exploded) {
+ this.y += this.vy;
+ this.vy += 0.06;
+ if (this.y <= this.targetY || this.vy >= -0.5) {
+ this.exploded = true;
+ this.explode();
+ }
+ }
+ }
+ draw() {
+ if (!this.exploded) {
+ ctx.beginPath();
+ ctx.arc(this.x, this.y, 2.4, 0, Math.PI * 2);
+ ctx.fillStyle = "rgba(200,230,255,1)";
+ ctx.fill();
+ ctx.beginPath();
+ ctx.arc(this.x, this.y + 5, 3.4, 0, Math.PI * 2);
+ ctx.fillStyle = "rgba(120,200,255,0.95)";
+ ctx.fill();
+ ctx.beginPath();
+ ctx.moveTo(this.x, this.y + 5);
+ ctx.lineTo(this.x - 4, this.y + 14);
+ ctx.lineTo(this.x + 4, this.y + 14);
+ ctx.closePath();
+ ctx.fillStyle = "rgba(80,140,255,0.55)";
+ ctx.fill();
+ // 蓝紫尾迹粒子
+ for (let i = 0; i < 2; i++) {
+ ctx.beginPath();
+ ctx.arc(this.x + (Math.random() - 0.5) * 6, this.y + 10 + Math.random() * 8, 1.6, 0, Math.PI * 2);
+ ctx.fillStyle = "rgba(160,120,255,0.5)";
+ ctx.fill();
+ }
+ }
+ }
+ explode() {
+ // 蓝紫渐变花束
+ for (let i = 0; i < 130; i++) {
+ const angle = Math.random() * Math.PI * 2;
+ const speed = Math.random() * 4 + 1;
+ const colors = ["120,200,255", "180,140,255", "255,182,230", "170,255,240"];
+ const color = colors[Math.floor(Math.random() * colors.length)];
+ particles.push(new Particle(this.x, this.y, color, speed, angle, 70 + Math.random() * 30, "blueVioletBouquet"));
+ }
+ // 中心闪光
+ for (let i = 0; i < 20; i++) {
+ const angle = Math.random() * Math.PI * 2;
+ const speed = Math.random() * 2 + 0.5;
+ particles.push(new Particle(this.x, this.y, "255,255,255", speed, angle, 25, "ring"));
+ }
+ // 外圈扩散环
+ for (let i = 0; i < 40; i++) {
+ const angle = (Math.PI * 2 / 40) * i;
+ const speed = 2.6;
+ particles.push(new Particle(this.x, this.y, "140,180,255", speed, angle, 40, "ring"));
+ }
+ }
+}
+class Ribbon{
+ constructor(){
+ this.reset(true);
+ }
+ reset(initial){
+ this.x = Math.random() * ribbonCanvas.width;
+ this.y = initial ? Math.random() * ribbonCanvas.height : -40;
+ this.size = Math.random() * 10 + 6;
+ this.color = ["255,180,210","255,220,120","160,220,255","210,180,255","255,150,180","255,255,255"][Math.floor(Math.random()*6)];
+ this.baseVy = Math.random() * 0.9 + 0.45;
+ this.swingAmp = Math.random() * 1.2 + 0.3;
+ this.swingFreq = Math.random() * 0.025 + 0.008;
+ this.phase = Math.random() * Math.PI * 2;
+ this.rot = Math.random() * Math.PI * 2;
+ this.baseRotSpeed = (Math.random() - 0.5) * 0.06;
+ this.rotMod = Math.random() * 0.04;
+ this.rotPhase = Math.random() * Math.PI * 2;
+ this.turbX = (Math.random() - 0.5) * 0.15;
+ this.turbY = (Math.random() - 0.5) * 0.08;
+ this.turbTimer = Math.random() * 120;
+ this.life = 700;
+ }
+ update(){
+ this.phase += this.swingFreq;
+ this.x += Math.sin(this.phase) * this.swingAmp * 0.04 + this.turbX;
+ this.y += this.baseVy + this.turbY;
+ this.rot += this.baseRotSpeed + Math.sin(this.rotPhase) * this.rotMod * 0.02;
+ this.rotPhase += 0.015;
+ this.turbTimer--;
+ if(this.turbTimer <= 0){
+ this.turbX = (Math.random() - 0.5) * 0.25;
+ this.turbY = (Math.random() - 0.5) * 0.12;
+ this.turbTimer = Math.random() * 140 + 40;
+ }
+ if(this.x < -50) this.x = ribbonCanvas.width + 50;
+ if(this.x > ribbonCanvas.width + 50) this.x = -50;
+ if(this.y > ribbonCanvas.height + 40 || this.life <= 0){
+ this.reset(false);
+ }
+ }
+ draw(){
+ ribbonCtx.save();
+ ribbonCtx.translate(this.x,this.y);
+ ribbonCtx.rotate(this.rot);
+ ribbonCtx.fillStyle = `rgb(${this.color})`;
+ ribbonCtx.fillRect(-this.size/2, -this.size/2, this.size, this.size * 2);
+ ribbonCtx.restore();
+ }
+}
+let ribbons=[];
+for(let i=0;i<60;i++) ribbons.push(new Ribbon());
+let particles = [];
+let rockets = [];
+function advancedFire(x, y) {
+ const palettes = [
+ ["255, 105, 180", "255, 174, 66", "255, 251, 121"],
+ ["120, 200, 255", "180, 140, 255", "255, 182, 230"],
+ ["255, 255, 255", "255, 241, 118", "170,255,240"]
+ ];
+ const palette = palettes[Math.floor(Math.random() * palettes.length)];
+ for (let i = 0; i < 180; i++) {
+ const angle = Math.random() * Math.PI * 2;
+ const speed = Math.random() * 5 + 1;
+ const color = palette[Math.floor(Math.random() * palette.length)];
+ particles.push(new Particle(x, y, color, speed, angle, 80 + Math.random() * 40, "burst"));
+ }
+ for (let i = 0; i < 40; i++) {
+ const angle = (Math.PI * 2 / 40) * i;
+ const speed = 3.2;
+ particles.push(new Particle(x, y, "255,255,255", speed, angle, 40, "ring"));
+ }
+ for (let i = 0; i < 80; i++) {
+ const angle = Math.random() * Math.PI * 2;
+ const speed = Math.random() * 2 + 0.5;
+ const color = palette[Math.floor(Math.random() * palette.length)];
+ particles.push(new Particle(x, y, color, speed, angle, 50 + Math.random() * 30, "fire"));
+ }
+}
+function goldenChrysanthemumFire(x, y) {
+ // 中心爆闪
+ for (let i = 0; i < 30; i++) {
+ const angle = Math.random() * Math.PI * 2;
+ const speed = Math.random() * 1.2 + 0.2;
+ particles.push(new Particle(x, y, "255,255,255", speed, angle, 30, "ring"));
+ }
+ // 金色菊花主体：多层扩散
+ for (let layer = 0; layer < 3; layer++) {
+ setTimeout(() => {
+ for (let i = 0; i < 70; i++) {
+ const angle = Math.random() * Math.PI * 2;
+ const speed = Math.random() * 3 + 1.2;
+ const colors = ["255,220,120", "255,180,60", "255,240,150"];
+ const color = colors[Math.floor(Math.random() * colors.length)];
+ particles.push(new Particle(x, y, color, speed, angle, 90 + Math.random() * 30, "goldChrysanthemum"));
+ }
+ }, layer * 120);
+ }
+ // 外圈白色光环
+ for (let i = 0; i < 36; i++) {
+ const angle = (Math.PI * 2 / 36) * i;
+ const speed = 2.4;
+ setTimeout(() => {
+ particles.push(new Particle(x, y, "255,255,255", speed, angle, 45, "ring"));
+ }, 360);
+ }
+}
+function spawnMouseGoldSparkle(){
+ if(currentPage!="final")return;
+ for(let i=0;i<1;i++){
+ let a=Math.random()*Math.PI*2;
+ let s=Math.random()*0.9+0.2;
+ particles.push(new Particle(mouseX,mouseY,"255,225,110",s,a,50+Math.random()*30,"goldTrail"));
+ }
+}
+function popFloatingText(x,y,text){
+ const div=document.createElement("div");
+ div.className="float-text";
+ div.innerText=text;
+ div.style.left=x+"px";
+ div.style.top=y+"px";
+ document.body.appendChild(div);
+ setTimeout(()=>div.remove(),2200);
+ const ripple=document.createElement("div");
+ ripple.className="ripple-ring";
+ ripple.style.left=(x-40)+"px";
+ ripple.style.top=(y-40)+"px";
+ ripple.style.width="80px";ripple.style.height="80px";
+ document.body.appendChild(ripple);
+ setTimeout(()=>ripple.remove(),1200);
+}
+function loop() {
+ ctx.fillStyle = "rgba(3, 4, 10, 0.18)";
+ ctx.fillRect(0, 0, canvas.width, canvas.height);
+ ribbonCtx.clearRect(0,0,ribbonCanvas.width,ribbonCanvas.height);
+ ribbons.forEach(r=>{r.update();r.draw();});
+ for (let i = rockets.length - 1; i >= 0; i--) {
+ rockets[i].update();
+ rockets[i].draw();
+ if (rockets[i].exploded) {
+ rockets.splice(i, 1);
+ }
+ }
+ for (let i = particles.length - 1; i >= 0; i--) {
+ particles[i].update();
+ particles[i].draw();
+ if (particles[i].life <= 0) {
+ particles.splice(i, 1);
+ }
+ }
+ spawnMouseGoldSparkle();
+ requestAnimationFrame(loop);
+}
+const pages = { cake:document.getElementById("page-cake"), final:document.getElementById("page-final") };
+function switchPage(name){
+ Object.values(pages).forEach(p=>p.classList.remove("active"));
+ pages[name].classList.add("active");
+ currentPage=name;
+ if(name==="cake") initCakeScene();
+}
+pages.cake.onclick=()=>switchPage("final");
+let cakeParticleList = [];
+let cakePhotoList = [];
+let cakeExploded = false;
+const cakeWrapDom = document.getElementById("cakeWrap");
+function generateCylinderParticle(radius, height, particleCount, yOffset, color){
+ let arr = [];
+ for(let i=0;i<particleCount;i++){
+ let theta = Math.random()*Math.PI*2;
+ let r = radius * Math.sqrt(Math.random());
+ let x = r * Math.cos(theta);
+ let z = r * Math.sin(theta);
+ let y = (Math.random()-0.5)*height + yOffset;
+ arr.push({x,y,z,color});
+ }
+ return arr;
+}
+function generateCreamRing(radius, yOffset, color, count = 140){
+ let arr = [];
+ for(let i = 0; i < count; i++){
+ let theta = Math.random() * Math.PI * 2;
+ let r = radius * (0.88 + Math.random() * 0.24);
+ let x = r * Math.cos(theta);
+ let z = r * Math.sin(theta);
+ let y = yOffset + (Math.random() - 0.5) * 10;
+ arr.push({x, y, z, color});
+ }
+ return arr;
+}
+function generateTopping(yOffset, colors){
+ let arr = [];
+ colors = colors || ["255, 80, 110", "255, 120, 90", "255, 140, 140"];
+ for(let i = 0; i < 180; i++){
+ let theta = Math.random() * Math.PI * 2;
+ let r = 40 + Math.random() * 30;
+ let x = r * Math.cos(theta);
+ let z = r * Math.sin(theta);
+ let y = yOffset + (Math.random() - 0.5) * 14;
+ arr.push({x, y, z, color: colors[i % colors.length]});
+ }
+ return arr;
+}
+function initCakeScene(){
+ cakeWrapDom.innerHTML = "";
+ cakeParticleList = [];
+ cakePhotoList = [];
+ cakeExploded = false;
+ let layerBottom = generateCylinderParticle(220, 90, 420, 74, "90, 120, 255");
+ let layerMid = generateCylinderParticle(170, 78, 340, 14, "150, 110, 255");
+ let layerTop = generateCylinderParticle(120, 66, 260, -42, "210, 140, 255");
+ let creamBottom = generateCreamRing(226, 119, "200, 230, 255", 160);
+ let creamMid = generateCreamRing(176, 53, "220, 210, 255", 140);
+ let creamTop = generateCreamRing(126, -9, "255, 255, 255", 120);
+ let topping = generateTopping(-75, [
+ "255, 255, 255", "180, 220, 255", "255, 210, 120"
+ ]);
+ let candlePart = generateCylinderParticle(20, 70, 70, -135, "180, 220, 255");
+ let allPoints = [ ...layerBottom, ...creamBottom, ...layerMid, ...creamMid, ...layerTop, ...creamTop, ...topping, ...candlePart ];
+ allPoints.forEach(p=>{
+ let el = document.createElement("div");
+ el.className = "cake-particle";
+ el.style.background = `rgb(${p.color})`;
+ el.style.width = p.color === "255,255,255" ? "11px" : "13px";
+ el.style.height = p.color === "255,255,255" ? "11px" : "13px";
+ el.dataset.ox = p.x;
+ el.dataset.oy = p.y;
+ el.dataset.oz = p.z;
+ el.style.transform = `translate(-50%, -50%) translate3d(${p.x}px, ${p.y}px, ${p.z}px)`;
+ cakeWrapDom.appendChild(el);
+ cakeParticleList.push(el);
+ });
+const photoUrls=[
+     "1.jpg",
+     "2.jpg",
+     "3.jpg",
+     "4.jpg",
+     "5.jpg",
+     "6.jpg"
+];
+ for(let i=0;i<photoUrls.length;i++){
+ let pd = document.createElement("div");
+ pd.className = "cake-photo-item";
+ let img = document.createElement("img");
+ img.src = photoUrls[i];
+ img.alt = "photo";
+ pd.appendChild(img);
+ let radius = 380;
+ let ang = (Math.PI * 2 / photoUrls.length) * i;
+ let px = radius * Math.cos(ang);
+ let pz = radius * Math.sin(ang);
+ pd.style.transform = `translate(-50%, -50%) translate3d(${px}px, 0px, ${pz}px) rotateY(${ang + Math.PI / 2}deg)`;
+ pd.dataset.sphereX = px;
+ pd.dataset.sphereZ = pz;
+ pd.style.display = "none";
+ cakeWrapDom.appendChild(pd);
+ cakePhotoList.push(pd);
+ }
+}
+function cakeExplode(){
+ if(cakeExploded) return;
+ cakeExploded = true;
+ cakeParticleList.forEach(dom=>{
+ let r = 340 + Math.random() * 140;
+ let theta = Math.random() * Math.PI * 2;
+ let phi = Math.random() * Math.PI;
+ let nx = r * Math.sin(phi) * Math.cos(theta);
+ let ny = r * Math.cos(phi);
+ let nz = r * Math.sin(phi) * Math.sin(theta);
+ dom.style.transform = `translate(-50%, -50%) translate3d(${nx}px, ${ny}px, ${nz}px)`;
+ });
+ cakePhotoList.forEach(p=>p.style.display="block");
+}
+function cakeRestore(){
+ if(!cakeExploded) return;
+ cakeExploded = false;
+ cakeParticleList.forEach(dom=>{
+ let ox = parseFloat(dom.dataset.ox);
+ let oy = parseFloat(dom.dataset.oy);
+ let oz = parseFloat(dom.dataset.oz);
+ dom.style.transform = `translate(-50%, -50%) translate3d(${ox}px, ${oy}px, ${oz}px)`;
+ });
+ cakePhotoList.forEach(p=>p.style.display="none");
+}
+function photoFlyCenter(){
+ if(!cakeExploded) return;
+ let idx = Math.floor(Math.random() * cakePhotoList.length);
+ let ph = cakePhotoList[idx];
+ ph.style.transform = `translate(-50%, -50%) translate3d(0px, 0px, 200px) scale(1.7) rotateY(0deg)`;
+ setTimeout(()=>{
+ let sx = parseFloat(ph.dataset.sphereX);
+ let sz = parseFloat(ph.dataset.sphereZ);
+ let a = Math.atan2(sz, sx);
+ ph.style.transform = `translate(-50%, -50%) translate3d(${sx}px, 0px, ${sz}px) rotateY(${a + Math.PI / 2}deg)`;
+ }, 1600);
+}
+let hands=null;
+async function initHandTrack(){
+ const video = document.getElementById('videoInput');
+ try{
+ hands=new Hands({locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+ hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.6,minTrackingConfidence:0.6});
+ hands.onResults(onHandResult);
+ const cam = new Camera(video, {
+ onFrame: async () => { await hands.send({image: video}); },
+ width: 640, height: 480
+ });
+ await cam.start();
+ console.log("✅摄像头和手势模块启动成功");
+ }catch(err){
+ console.warn("❌摄像头拒绝/不可用，手势功能关闭，页面其他交互正常",err);
+ }
+}
+function classifyGesture(landmarks){
+ const thumbTip=landmarks[4],indexTip=landmarks[8],midTip=landmarks[12],ringTip=landmarks[16],pinkyTip=landmarks[20];
+ const indexPip=landmarks[6],midPip=landmarks[10],ringPip=landmarks[14],pinkyPip=landmarks[18];
+ let indexUp=indexTip.y<indexPip.y;
+ let midUp=midTip.y<midPip.y;
+ let ringUp=ringTip.y<ringPip.y;
+ let pinkyUp=pinkyTip.y<pinkyPip.y;
+ if(!indexUp&&!midUp&&!ringUp&&!pinkyUp)return "fist";
+ if(indexUp&&midUp&&ringUp&&pinkyUp)return "palm";
+ if(indexUp&&!midUp&&!ringUp&&!pinkyUp)return "oneFinger";
+ return "other";
+}
+function onHandResult(res){
+ if(!res.multiHandLandmarks||res.multiHandLandmarks.length===0){
+    lastDetectGesture="none";
+    return;
+ }
+ const lm=res.multiHandLandmarks[0];
+ const g=classifyGesture(lm);
+ const now = Date.now();
+ if(now - lastGestureTime < gestureCoolDown){
+    return;
+ }
+ if(g === lastDetectGesture){
+    return;
+ }
+ if(currentPage==="cake"){
+    if(g==="palm"){
+        if(!cakeExploded){
+            cakeExplode();
+            lastGestureTime = now;
+            lastDetectGesture = g;
+        }
+    }else if(g==="fist"){
+        if(cakeExploded){
+            cakeRestore();
+            lastGestureTime = now;
+            lastDetectGesture = g;
+        }
+    }else if(g==="oneFinger"){
+        photoFlyCenter();
+        lastGestureTime = now;
+        lastDetectGesture = g;
+    }else{
+        lastDetectGesture = "none";
+    }
+ }
+ if(currentPage==="final"){
+    if(g==="fist"){
+        // 握拳：金色菊花烟花
+        for(let k=0;k<4;k++)
+        setTimeout(()=>goldenChrysanthemumFire(Math.random()*canvas.width,Math.random()*canvas.height*0.55),k*350);
+        lastGestureTime = now;
+        lastDetectGesture = g;
+    }else{
+        lastDetectGesture = "none";
+    }
+ }
+}
+window.addEventListener("mousemove",e=>{mouseX=e.clientX;mouseY=e.clientY;});
+window.addEventListener("click",e=>{
+ if(currentPage==="final"){
+ advancedFire(e.clientX,e.clientY);
+ popFloatingText(e.clientX,e.clientY,"嵇莎茹，生日快乐！");
+ }
+});
+window.addEventListener("keydown",e=>{
+ if(e.code==="Space"&&currentPage==="final"){
+ e.preventDefault();
+ // 空格：蓝紫流光火箭烟花
+ for(let k=0;k<6;k++){
+ setTimeout(()=>{
+ const x = Math.random() * canvas.width;
+ const targetY = canvas.height * (0.30 + Math.random() * 0.25);
+ rockets.push(new Rocket(x, targetY));
+ }, k * 280);
+ }
+ }
+});
+
+// 只在cake.html被用户手动刷新(F5)时，自动返回index.html
+window.addEventListener('DOMContentLoaded', () => {
+  const nav = performance.getEntriesByType("navigation")[0];
+  // nav.type === "reload" = 页面是刷新打开；其他为navigate（正常点击跳转）
+  if (nav && nav.type === "reload") {
+    location.href = "index.html";
+  }
+});
+
+// ========================================================
+
+window.addEventListener("load",async ()=>{
+ loop();
+ initCakeScene();
+ await initHandTrack();
+});
+</script>
+</body>
+</html>

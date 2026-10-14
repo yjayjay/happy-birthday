@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Happy Birthday</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #050714;
+        color: #fff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    /* 全屏深色背景 */
+    .bg-dark {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background:
+            radial-gradient(ellipse at 10% 10%, rgba(80, 140, 255, 0.18), transparent 45%),
+            radial-gradient(ellipse at 90% 15%, rgba(255, 100, 180, 0.15), transparent 50%),
+            radial-gradient(ellipse at 75% 90%, rgba(90, 180, 255, 0.14), transparent 55%),
+            linear-gradient(180deg, #050714 0%, #060818 45%, #080a20 100%);
+    }
+    /* 底部暗纹装饰 */
+    .bg-lines {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background-image:
+            url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cstyle%3E .line { stroke: %23101830; stroke-width: 1; opacity: 0.55; } %3C/style%3E%3C/defs%3E%3Cg%3E%3Cpath class='line' d='M300 900 C400 700, 350 400, 500 300 S650 200, 700 100' /%3E%3Cpath class='line' d='M500 950 C600 750, 550 450, 700 350 S850 250, 900 150' /%3E%3Cpath class='line' d='M700 920 C800 720, 750 420, 900 320 S1050 220, 1100 120' /%3E%3Cpath class='line' d='M900 960 C1000 760, 950 460, 1100 360 S1250 260, 1300 160' /%3E%3Cpath class='line' d='M1100 930 C1200 730, 1150 430, 1300 330 S1450 230, 1500 130' /%3E%3Cpath class='line' d='M1300 970 C1400 770, 1350 470, 1500 370 S1650 270, 1700 170' /%3E%3Cpath class='line' d='M200 940 C300 740, 250 440, 400 340 S550 240, 600 140' /%3E%3Cpath class='line' d='M400 980 C500 780, 450 480, 600 380 S750 280, 800 180' /%3E%3C/g%3E%3C/svg%3E");
+        background-size: 100% 100%;
+        background-position: bottom center;
+        background-repeat: no-repeat;
+        opacity: 0.9;
+    }
+    /* 彩带和碎星画布 */
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 2;
+    }
+    /* 页面容器 */
+    .page {
+        position: relative;
+        z-index: 3;
+        width: 100vw;
+        height: 100vh;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+    .page.active {
+        display: flex;
+    }
+    /* 登录卡片样式 */
+    .login-card {
+        width: 320px;
+        padding: 36px 28px;
+        border-radius: 20px;
+        background:
+            linear-gradient(135deg,
+                rgba(50, 55, 75, 0.95) 0%,
+                rgba(30, 35, 55, 0.98) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow:
+            0 18px 45px rgba(0, 0, 0, 0.75),
+            0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+    .login-card h2 {
+        text-align: center;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        color: #ffffff;
+        margin-bottom: 24px;
+    }
+    .input-item {
+        margin-bottom: 16px;
+    }
+    .input-item label {
+        display: block;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.75);
+        margin-bottom: 7px;
+    }
+    .input-item input {
+        width: 100%;
+        height: 46px;
+        padding: 0 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        font-size: 15px;
+        outline: none;
+        transition: 0.25s ease;
+    }
+    .input-item input:focus {
+        border-color: rgba(255, 105, 180, 0.6);
+        background: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.15);
+    }
+    .tip {
+        height: 20px;
+        font-size: 13px;
+        color: #ff9cb8;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    .login-btn {
+        width: 100%;
+        height: 48px;
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(90deg, #ff5f9c, #ffb26b);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        box-shadow: 0 8px 22px rgba(255, 95, 156, 0.35);
+        transition: 0.2s ease;
+    }
+    .login-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 28px rgba(255, 95, 156, 0.45);
+    }
+    .login-card.vanishing {
+        transform: scale(0.94);
+        opacity: 0;
+        pointer-events: none;
+    }
+    .login-card.shake {
+        animation: shake 0.4s ease;
+    }
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-8px); }
+        75% { transform: translateX(8px); }
+    }
+    /* Hello页、文案页、便签页保持不变 */
+    #page-hello,
+    #page-particle,
+    #page-note {
+        cursor: pointer;
+    }
+    .hello-title {
+        font-family: "Pacifico", "Dancing Script", "Segoe Script", cursive;
+        font-size: 72px;
+        font-weight: 400;
+        letter-spacing: 3px;
+        background: linear-gradient(90deg, #4de3d4, #ffd56b, #ff7ab0, #a78bfa, #58ccff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        opacity: 0;
+        transform: translateY(24px) scale(0.96);
+        transition: opacity 1.4s ease, transform 1.6s cubic-bezier(0.19, 1, 0.22, 1);
+        filter: blur(6px);
+    }
+    #page-hello.active .hello-title {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+    .click-hint {
+        position: absolute;
+        bottom: 80px;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.4);
+        animation: hintBlink 2.4s ease-in-out infinite;
+    }
+    @keyframes hintBlink {
+        0%, 100% { opacity: 0.25; }
+        50% { opacity: 0.7; }
+    }
+    .sentence-wrap {
+        width: 90vw;
+        max-width: 860px;
+        text-align: center;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 1s ease, transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    #page-particle.active .sentence-wrap {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .sentence {
+        font-family: "Comic Sans MS", "Marker Felt", "Segoe Script", cursive;
+        font-size: 32px;
+        line-height: 2.1;
+        color: #ffffff;
+        opacity: 0;
+        transform: translateY(14px);
+        transition: opacity 1.3s ease, transform 1.3s ease;
+        letter-spacing: 2px;
+        margin-bottom: 20px;
+    }
+    .sentence.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .sentence .name-purple {
+        color: #c9b8ff;
+        font-weight: 500;
+    }
+    #page-note {
+        overflow: hidden;
+    }
+    .note {
+        position: absolute;
+        padding: 14px 16px;
+        border-radius: 10px;
+        color: #2b2b2b;
+        font-size: 13px;
+        line-height: 1.45;
+        box-shadow:
+            0 10px 30px rgba(0, 0, 0, 0.45),
+            0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+        opacity: 0;
+        transform: scale(0.2);
+        transition:
+            transform 1s cubic-bezier(0.2, 0.7, 0.2, 1),
+            opacity 0.75s ease;
+        will-change: transform, opacity;
+    }
+    /* 新增：爆炸状态过渡，和登录爆炸曲线保持一致 */
+    .note.explode-anim {
+        transition: all 1.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .note.show {
+        opacity: 1;
+    }
+    .note::before {
+        content: "";
+        position: absolute;
+        top: 10px;
+        left: 16px;
+        width: 34px;
+        height: 4px;
+        background: rgba(0, 0, 0, 0.12);
+        border-radius: 2px;
+    }
+</style>
+</head>
+<body>
+<div class="bg-dark"></div>
+<div class="bg-lines"></div>
+<canvas id="mainCanvas"></canvas>
+<!-- 登录页 -->
+<div id="page-login" class="page active">
+    <div class="login-card" id="loginCard">
+        <h2>请验证身份进入</h2>
+        <div class="input-item">
+            <label>姓名</label>
+            <input type="text" id="nameInput" placeholder="请输入姓名" />
+        </div>
+        <div class="input-item">
+            <label>密码</label>
+            <input type="password" id="pwdInput" placeholder="请输入密码" />
+        </div>
+        <div class="tip" id="errTip"></div>
+        <button class="login-btn" id="loginBtn">登录</button>
+    </div>
+</div>
+<!-- Hello页 -->
+<div id="page-hello" class="page">
+    <div class="hello-title">Hello，嵇莎茹同学</div>
+    <div class="click-hint">点击屏幕任意位置继续</div>
+</div>
+<!-- 文案页 -->
+<div id="page-particle" class="page">
+    <div class="sentence-wrap">
+        <p class="sentence">7305天前的那一天，是上帝认为世界不能再没有你的一天，</p>
+        <p class="sentence">7305天后，你20岁了，<span class="name-purple">嵇莎茹同学</span>，生日快乐！！！</p>
+    </div>
+    <div class="click-hint">点击屏幕继续</div>
+</div>
+<!-- 便签页 -->
+<div id="page-note" class="page"></div>
+<script>
+const canvas = document.getElementById("mainCanvas");
+const ctx = canvas.getContext("2d");
+let currentPage = "login";
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+// 粒子类：彩带、亮片、碎星、流星
+class Particle {
+    constructor(x, y, color, size, angle, life, type = "confetti") {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.size = size;
+        this.angle = angle;
+        this.life = life;
+        this.maxLife = life;
+        this.type = type;
+        this.vx = (Math.random() - 0.5) * 2.5;
+        this.vy = Math.random() * 2.8 + 1.2;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.2;
+        this.wave = Math.random() * Math.PI * 2;
+        this.waveSpeed = Math.random() * 0.028 + 0.012;
+        this.waveRange = Math.random() * 24 + 14;
+        this.opacity = 1;
+        this.depth = Math.random();
+    }
+    update() {
+        this.x += this.vx + Math.sin(this.wave) * 0.7;
+        this.y += this.vy;
+        this.wave += this.waveSpeed;
+        this.rotation += this.rotSpeed;
+        this.vy += 0.01;
+        this.vx *= 0.99;
+        this.opacity = Math.max(0, this.life / this.maxLife);
+        this.life--;
+    }
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        const alpha = this.opacity * 0.9;
+        const s = this.size * (0.75 + this.depth * 0.5);
+        if (this.type === "ribbon") {
+            const gradient = ctx.createLinearGradient(-s, 0, s, 0);
+            gradient.addColorStop(0, `rgba(${this.color}, 0.2)`);
+            gradient.addColorStop(0.5, `rgba(${this.color}, ${alpha})`);
+            gradient.addColorStop(1, `rgba(${this.color}, 0.2)`);
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(-s, 0);
+            ctx.quadraticCurveTo(0, -s * 0.38, s, 0);
+            ctx.quadraticCurveTo(0, s * 0.38, -s, 0);
+            ctx.fill();
+        } else if (this.type === "shine") {
+            ctx.fillStyle = `rgba(${this.color}, ${alpha})`;
+            ctx.beginPath();
+            ctx.moveTo(0, -s);
+            ctx.lineTo(s, 0);
+            ctx.lineTo(0, s);
+            ctx.lineTo(-s, 0);
+            ctx.closePath();
+            ctx.fill();
+        } else if (this.type === "stardust") {
+            // 碎星：小圆点 + 十字微光
+            ctx.fillStyle = `rgba(${this.color}, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(0, 0, s, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(${this.color}, ${alpha * 0.5})`;
+            ctx.beginPath();
+            ctx.moveTo(-s * 1.8, 0);
+            ctx.lineTo(s * 1.8, 0);
+            ctx.moveTo(0, -s * 1.8);
+            ctx.lineTo(0, s * 1.8);
+            ctx.stroke();
+        } else if (this.type === "meteor") {
+            // 流星：细长拖尾
+            const gradient = ctx.createLinearGradient(0, 0, 0, s * 5);
+            gradient.addColorStop(0, `rgba(${this.color}, ${alpha})`);
+            gradient.addColorStop(1, `rgba(${this.color}, 0)`);
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.ellipse(0, s * 2.5, s * 0.7, s * 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = `rgba(${this.color}, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(0, 0, s, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+let particles = [];
+// 高级彩带配色
+const confettiColors = [
+    "255, 225, 130",
+    "255, 180, 195",
+    "170, 215, 240",
+    "185, 160, 240",
+    "255, 255, 255",
+    "255, 240, 245",
+    "225, 255, 255",
+    "255, 215, 195"
+];
+// 碎星配色
+const stardustColors = [
+    "255, 255, 255",
+    "220, 235, 255",
+    "255, 240, 215"
+];
+// 创建彩带
+function createConfetti(x, y, count = 1) {
+    for (let i = 0; i < count; i++) {
+        const color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+        const size = Math.random() * 10 + 5;
+        const life = 240 + Math.random() * 180;
+        const type = Math.random() < 0.45 ? "ribbon" : (Math.random() < 0.75 ? "shine" : "dot");
+        particles.push(new Particle(
+            x || Math.random() * canvas.width,
+            y || -15,
+            color,
+            size,
+            Math.random() * Math.PI * 2,
+            life,
+            type
+        ));
+    }
+}
+// ==========【只改这里：登录页碎星生成，大幅加密】==========
+function createLoginStardust() {
+    const card = document.getElementById("loginCard");
+    const rect = card.getBoundingClientRect();
+    const margin = 180;
+    const xMin = rect.left - margin;
+    const xMax = rect.right + margin;
+    const yMin = rect.top - margin;
+    const yMax = rect.bottom + margin;
+    const x = xMin + Math.random() * (xMax - xMin);
+    const y = yMin + Math.random() * (yMax - yMin);
+    // 跳过卡片内部，只在卡片外围生成星光
+    if (x > rect.left && x < rect.right && y > rect.top && y < rect.bottom) return;
+    const color = stardustColors[Math.floor(Math.random() * stardustColors.length)];
+    const size = Math.random() * 3.2 + 0.4;
+    const life = 180 + Math.random() * 240;
+    const p = new Particle(x, y, color, size, 0, life, "stardust");
+    p.vx = (Math.random() - 0.5) * 0.6;
+    p.vy = (Math.random() - 0.5) * 0.6;
+    p.rotSpeed = (Math.random() - 0.5) * 0.05;
+    particles.push(p);
+}
+// 登录页流星增强
+function createLoginMeteor() {
+    const color = Math.random() < 0.5 ? "255,255,255" : "255,220,180";
+    const x = Math.random() * canvas.width;
+    const y = -15;
+    const size = Math.random() * 5 + 2;
+    const life = 200 + Math.random() * 160;
+    const p = new Particle(x, y, color, size, Math.PI / 2, life, "meteor");
+    p.vx = (Math.random() - 0.5) * 1.8;
+    p.vy = Math.random() * 4 + 3.2;
+    particles.push(p);
+}
+// 登录成功：卡片碎成星光 + 彩带爆发
+function loginCardDissolve() {
+    const card = document.getElementById("loginCard");
+    const rect = card.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    card.classList.add("vanishing");
+    for (let i = 0; i < 240; i++) {
+        const color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+        const size = Math.random() * 8 + 3;
+        const life = 220 + Math.random() * 160;
+        const p = new Particle(centerX, centerY, color, size, Math.random() * Math.PI * 2, life, "shine");
+        p.vx = (Math.random() - 0.5) * 10;
+        p.vy = (Math.random() - 0.5) * 10;
+        p.rotSpeed = (Math.random() - 0.5) * 0.25;
+        particles.push(p);
+    }
+    setTimeout(() => {
+        createConfetti(null, null, 100);
+    }, 300);
+}
+
+// =====================【新增：便签爆炸函数，和登录爆炸特效完全一致】=====================
+function notePageExplode() {
+    const container = pages.note;
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const allNotes = document.querySelectorAll(".note");
+    allNotes.forEach(note => {
+        note.classList.add("explode-anim");
+        note.style.transform = `translate(${(Math.random() - 0.5) * window.innerWidth}px, ${(Math.random() - 0.5) * window.innerHeight}px) scale(0.2) rotate(${Math.random() * 720}deg)`;
+        note.style.opacity = 0;
+    });
+    // 爆炸粒子，和登录卡片爆炸数量、参数一模一样
+    for (let i = 0; i < 240; i++) {
+        const color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+        const size = Math.random() * 8 + 3;
+        const life = 220 + Math.random() * 160;
+        const p = new Particle(centerX, centerY, color, size, Math.random() * Math.PI * 2, life, "shine");
+        p.vx = (Math.random() - 0.5) * 10;
+        p.vy = (Math.random() - 0.5) * 10;
+        p.rotSpeed = (Math.random() - 0.5) * 0.25;
+        particles.push(p);
+    }
+    setTimeout(() => {
+        createConfetti(null, null, 100);
+    }, 300);
+}
+
+// 动画主循环【重点：其他页面粒子逻辑保持原版不动！！】
+function loop() {
+    ctx.fillStyle = "rgba(5, 7, 20, 0.18)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].draw();
+        if (particles[i].life <= 0 || particles[i].y > canvas.height + 80) {
+            particles.splice(i, 1);
+        }
+    }
+    // =====================
+    // Hello、文案、便签页面：保留原版粒子生成频率，完全不变
+    // =====================
+    if (["hello", "particle", "note"].includes(currentPage)) {
+        if (Math.random() < 0.08) {
+            createConfetti(null, null, 1);
+        }
+    }
+    // =====================
+    // 【仅登录页面】提高碎星、流星、彩带生成密度
+    // =====================
+    if (currentPage === "login") {
+        // 碎星，更高频率，粒子上限300
+        if (Math.random() < 0.4 && particles.length < 300) {
+            createLoginStardust();
+        }
+        // 流星
+        if (Math.random() < 0.07) {
+            createLoginMeteor();
+        }
+        // 登录页彩带
+        if (Math.random() < 0.14) {
+            createConfetti(null, null, 1);
+        }
+    }
+    requestAnimationFrame(loop);
+}
+// 页面切换
+const pages = {
+    login: document.getElementById("page-login"),
+    hello: document.getElementById("page-hello"),
+    particle: document.getElementById("page-particle"),
+    note: document.getElementById("page-note")
+};
+function switchPage(name) {
+    Object.values(pages).forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".sentence").forEach(s => s.classList.remove("show"));
+    pages[name].classList.add("active");
+    currentPage = name;
+    if (name === "particle") {
+        setTimeout(() => {
+            document.querySelectorAll(".sentence")[0].classList.add("show");
+            setTimeout(() => {
+                document.querySelectorAll(".sentence")[1].classList.add("show");
+            }, 700);
+        }, 400);
+    }
+    if (name === "note") {
+        startNoteRain();
+    }
+}
+// 登录逻辑
+document.getElementById("loginBtn").addEventListener("click", () => {
+    const name = document.getElementById("nameInput").value.trim();
+    const pwd = document.getElementById("pwdInput").value.trim();
+    const tip = document.getElementById("errTip");
+    const card = document.getElementById("loginCard");
+    if (name === "jsczs" && pwd === "061027") {
+        tip.innerText = "";
+        loginCardDissolve();
+        setTimeout(() => {
+            switchPage("hello");
+        }, 1100);
+    } else {
+        tip.innerText = "姓名或密码错误，请重新输入";
+        card.classList.remove("shake");
+        void card.offsetWidth;
+        card.classList.add("shake");
+    }
+});
+pages.hello.onclick = () => switchPage("particle");
+pages.particle.onclick = () => switchPage("note");
+// ==========【修改便签页点击：先爆炸彩带，延时跳转蛋糕页面】==========
+pages.note.onclick = () => {
+    notePageExplode();
+    setTimeout(() => {
+        window.location.href = "cake.html";
+    }, 1100);
+};
+// 便签雨（完全原版，不改动）
+function startNoteRain() {
+    const container = pages.note;
+    container.innerHTML = "";
+    const noteTexts = [
+        "20岁，新的篇章✨",
+        "愿你永远热烈自由",
+        "万事顺意，平安喜乐",
+        "保持热爱，奔赴山海",
+        "所有美好都向你奔赴",
+        "生日快乐，嵇莎茹",
+        "愿日子温柔闪光",
+        "永远做闪闪发光的自己",
+        "新一岁，所愿皆所得",
+        "岁岁常欢愉，年年皆胜意",
+        "愿你眼里有光，心中有爱",
+        "祝你快乐，不止今天",
+        "被爱包围，也被自己喜欢",
+        "有奔赴热爱的勇气",
+        "有收下惊喜的运气",
+        "永远热烈，永远年轻",
+        "你值得所有温柔",
+        "继续勇敢，继续发光",
+        "愿你一路繁花相送",
+        "开心最重要啦",
+        "做自己，最浪漫",
+        "好运正在靠近你",
+        "今天只负责快乐",
+        "你生来就值得被爱",
+        "二十岁，欢迎登场",
+        "勇敢一点，你超棒",
+        "每天都有小幸运",
+        "笑一笑，生活很甜",
+        "你是独一无二的存在",
+        "愿你被世界温柔以待",
+        "记得好好爱自己",
+        "今天也要开心呀",
+        "你笑起来真好看",
+        "保持热爱，保持好奇",
+        "愿你一路生花",
+        "别慌，月亮也在慢慢变圆",
+        "做个快乐的普通人",
+        "风会带来好消息",
+        "你比想象中更厉害",
+        "愿所有快乐，无需假装",
+        "吃好睡好，万事顺意",
+        "把烦恼都丢掉",
+        "生日快乐，不止今天",
+        "未来可期，人间值得",
+        "温柔半两，从容一生",
+        "好好生活，慢慢相遇",
+        "花会沿路盛开",
+        "你一定会越来越好",
+        "愿你成为自己的太阳",
+        "自由、勇敢、闪闪发光",
+        "一生被爱，一生可爱",
+        "今天的你，也很重要",
+        "你很可爱，别否定自己",
+        "快乐万岁，自由至上",
+        "温柔坚定，慢慢长大",
+        "世界因你而更可爱",
+        "把浪漫留给自己",
+        "你值得所有美好",
+        "生活是自己的，尽情可爱",
+        "祝你快乐，不止生日",
+        "你是最棒的，相信自己",
+        "好好爱自己，是终身浪漫",
+        "你是我心中的星光",
+        "你是特别的，独一无二",
+        "温柔一点，也坚定一点",
+        "你真的很棒，继续发光",
+        "生日快乐，永远开心",
+        "今天的风，也很温柔",
+        "你是我最特别的存在",
+        "愿你眼里有光，心里有爱",
+        "你会越来越好的，相信我",
+        "做自己，才会遇见同频的人",
+        "你值得被爱，也值得被偏爱",
+        "愿你成为自己喜欢的样子",
+        "把每一天都过成小确幸",
+        "你很优秀，继续加油",
+        "愿你一生努力，一生被爱",
+        "保持热爱，奔赴山海",
+        "你会拥有想要的一切",
+        "温柔坚定，未来可期",
+        "你是人间四月天",
+        "愿你所有美好都如期而至",
+        "生日快乐，永远年轻",
+        "你是我的小确幸",
+        "愿你一路繁花相送",
+        "把自己活成喜欢的模样",
+        "愿你眼里有星河，心中有山海",
+        "生日快乐，我的女孩",
+        "愿你永远被爱包围",
+        "你是独一无二的星光",
+        "保持热爱，保持勇敢，保持快乐"
+    ];
+    const noteColors = [
+        "#ffe66d", "#ffb3d1", "#b5ead7", "#c7ceea",
+        "#ffd3b6", "#d4a5ff", "#a0e7e5", "#ffaaa5",
+        "#fff5ba", "#e0c3fc", "#ffc8dd", "#c5f0c5",
+        "#bde0fe", "#ffc9c9", "#caffbf", "#ffd6a5",
+        "#cddafd", "#fad2e1", "#fdffb6", "#d0f4de"
+    ];
+    const count = 150;
+    const notes = [];
+    for (let i = 0; i < count; i++) {
+        const div = document.createElement("div");
+        div.className = "note";
+        div.innerText = noteTexts[Math.floor(Math.random() * noteTexts.length)];
+        div.style.background = noteColors[Math.floor(Math.random() * noteColors.length)];
+        notes.push(div);
+        container.appendChild(div);
+    }
+    notes.forEach((note, index) => {
+        const viewW = window.innerWidth;
+        const viewH = window.innerHeight;
+        const widths = [160, 180, 200, 220];
+        const w = widths[Math.floor(Math.random() * widths.length)];
+        const h = 90 + Math.floor(Math.random() * 20);
+        note.style.width = w + "px";
+        note.style.height = h + "px";
+        const targetX = Math.random() * (viewW - w - 10) + 5;
+        const targetY = Math.random() * (viewH - h - 10) + 5;
+        const targetRotate = (Math.random() - 0.5) * 18;
+        if (index < 50) {
+            const cx = viewW / 2;
+            const cy = viewH / 2;
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 260 + Math.random() * 260;
+            const startX = cx + Math.cos(angle) * dist - w / 2;
+            const startY = cy + Math.sin(angle) * dist - h / 2;
+            note.style.left = startX + "px";
+            note.style.top = startY + "px";
+            note.style.transform = `scale(0.15) translate(${(Math.random() - 0.5) * 120}px, ${(Math.random() - 0.5) * 120}px)`;
+            setTimeout(() => {
+                note.classList.add("show");
+                note.style.left = targetX + "px";
+                note.style.top = targetY + "px";
+                note.style.transform = `scale(1) rotate(${targetRotate}deg)`;
+            }, index * 45);
+        } else if (index < 100) {
+            let startX, startY;
+            const side = Math.floor(Math.random() * 4);
+            if (side === 0) {
+                startX = targetX;
+                startY = -h - Math.random() * 120;
+            } else if (side === 1) {
+                startX = targetX;
+                startY = viewH + Math.random() * 120;
+            } else if (side === 2) {
+                startX = -w - Math.random() * 120;
+                startY = targetY;
+            } else {
+                startX = viewW + Math.random() * 120;
+                startY = targetY;
+            }
+            note.style.left = startX + "px";
+            note.style.top = startY + "px";
+            note.style.transform = `scale(0.22)`;
+            setTimeout(() => {
+                note.classList.add("show");
+                note.style.left = targetX + "px";
+                note.style.top = targetY + "px";
+                note.style.transform = `scale(1) rotate(${targetRotate}deg)`;
+            }, index * 55);
+        } else {
+            let startX, startY;
+            const side = Math.floor(Math.random() * 4);
+            if (side === 0) {
+                startX = targetX;
+                startY = -h - Math.random() * 100;
+            } else if (side === 1) {
+                startX = targetX;
+                startY = viewH + Math.random() * 100;
+            } else if (side === 2) {
+                startX = -w - Math.random() * 100;
+                startY = targetY;
+            } else {
+                startX = viewW + Math.random() * 100;
+                startY = targetY;
+            }
+            note.style.left = startX + "px";
+            note.style.top = startY + "px";
+            note.style.transform = `scale(0.2)`;
+            setTimeout(() => {
+                note.classList.add("show");
+                note.style.left = targetX + "px";
+                note.style.top = targetY + "px";
+                note.style.transform = `scale(1) rotate(${targetRotate}deg)`;
+            }, index * 60);
+        }
+    });
+}
+window.addEventListener("load", () => loop());
+</script>
+</body>
+</html>
+
+
+
+
